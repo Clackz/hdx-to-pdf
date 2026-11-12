@@ -135,7 +135,7 @@ def main():
     try:
         from PIL import Image
     except ImportError:
-        print("[x] 需要 Pillow：先装到受管 venv 里")
+        print("[x] 需要 Pillow：pip install -r requirements.txt")
         return 2
     if shutil.which("pdftoppm") is None:
         print("[x] 需要 poppler 的 pdftoppm")

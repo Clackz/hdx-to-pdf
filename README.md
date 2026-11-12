@@ -32,17 +32,30 @@
 ## 依赖
 
 ```bash
-# 系统库：Pango / cairo / poppler
-#   Debian/Ubuntu: sudo apt install libpango-1.0-0 libpangoft2-1.0-0 poppler-utils
+# 1) 系统库：Pango / cairo 是 WeasyPrint 的渲染后端，poppler 供溢出体检使用
+#   Debian/Ubuntu: sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b poppler-utils
 #   Arch/Manjaro:  sudo pacman -S pango poppler
-pip install weasyprint pikepdf
+#   Fedora:        sudo dnf install pango harfbuzz poppler-utils
 
-# 字体：官方 CSS 硬编码 "宋体" / "黑体" / "Times New Roman"，缺了会变形
+# 2) Python 包
+pip install -r requirements.txt
+
+# 3) 字体：官方 CSS 硬编码 "宋体" / "黑体" / "Times New Roman"，缺了会变形
 fc-match 宋体   # 期望 simsun.ttc
 fc-match 黑体   # 期望 simhei.ttf
 ```
 
-`poppler-utils` 只在跑溢出体检（`scan_overflow.py`）时需要。
+三个 Python 包的分工，以及缺了会怎样：
+
+| 包 | 用途 | 缺失后果 |
+|---|---|---|
+| `weasyprint` | 唯一渲染引擎 | 无法出 PDF，启动即报错退出 |
+| `pikepdf` | 合并 PDF 型附件、写书签与元数据 | 没有附件的包不受影响；有附件的包会缺最后那一段 |
+| `pillow` | 检测并切分超长信息图 | **不会报错**，只打印「切分失败」——长图照样溢出纸外，属于静默降级 |
+
+`poppler-utils` 只在跑 `scan_overflow.py` 时需要，出 PDF 本身用不到。
+
+一套全新的 venv 从 `pip install -r requirements.txt` 到跑出 PDF 已实测通过（Python 3.13 / WeasyPrint 70 / pikepdf 10.18 / Pillow 13）。
 
 ## 用法
 

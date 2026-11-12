@@ -7,6 +7,16 @@ Huawei HedEx (.hdx) -> 带书签/目录页码的单本 PDF
 import sys, os, re, glob, time, math, html as ihtml
 import xml.etree.ElementTree as ET
 
+
+def _need(mod, note=""):
+    """导入第三方库；缺失时给一句人话，而不是抛 ImportError traceback"""
+    try:
+        return __import__(mod)
+    except ImportError:
+        sys.exit("[!] 缺少依赖 %s%s\n    装一下：pip install -r requirements.txt"
+                 % (mod, "（%s）" % note if note else ""))
+
+
 SRC = sys.argv[1] if len(sys.argv) > 1 else "/tmp/hdx_extract"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "/tmp/out.pdf"
 LIMIT = 0
@@ -296,6 +306,10 @@ def _split_long_image(path):
         print("[i] 超长图切分 %s  %dx%d -> %d 块" % (os.path.basename(path), w, h, len(names)))
         _split_cache[path] = names
         return names
+    except ImportError:
+        print("[!] 缺少 Pillow，超长图无法切块会溢出纸外 —— pip install Pillow")
+        _split_cache[path] = None
+        return None
     except Exception as e:
         print("[!] 切分失败 %s: %s" % (path, e))
         _split_cache[path] = None
@@ -543,14 +557,14 @@ if not (REUSE_HTML and os.path.exists(html_path)):
 print(f"[i] HTML 生成完成 {time.time()-t0:.1f}s  {len(doc)/1024/1024:.1f}MB  缺失 {len(missing)} 去重跳过 {dup_skipped}")
 
 # ---------- 6. 渲染 ----------
-from weasyprint import HTML
+HTML = _need("weasyprint", "还需系统装 libpango").HTML
 t1 = time.time()
 HTML(filename=html_path, base_url=RES + "/").write_pdf(OUT)
 print(f"[✓] 主文档渲染完成 {time.time()-t1:.1f}s -> {OUT}  {os.path.getsize(OUT)/1024/1024:.1f}MB")
 
 # ---------- 7. 合并附件（独立文档）到文末并挂书签 ----------
 if attachments:
-    import pikepdf
+    pikepdf = _need("pikepdf", "合并 PDF 型附件需要它")
     marks = []
     tmp = OUT + ".tmp.pdf"
     with pikepdf.open(OUT) as main:
